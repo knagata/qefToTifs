@@ -234,7 +234,7 @@ void ofApp::update(){
         resImg.clear();
         resImg.allocate(w, h, OF_IMAGE_COLOR_ALPHA);
         resImg.setFromPixels(pix);
-        resImg.save(name+"_"+ofToString(currentLayer)+".tiff");
+        resImg.save(name+"_"+ofToString(currentLayer)+".png");
 //        if(currentLayer==voxelLayer.size()-1){
 //            exporting=false;
 //            cout << "time: " << ofGetElapsedTimef()-elTime << endl;
@@ -280,7 +280,7 @@ void ofApp::draw(){
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     if (key == ' '){
-        name = ofSystemTextBoxDialog("save?","result/penguin");
+        name = ofSystemTextBoxDialog("save?","result/dog");
         exporting = true;
         elTime = ofGetElapsedTimef();
         currentLayer = 0;
