@@ -56,11 +56,9 @@ class ofApp : public ofBaseApp{
     int currentLayer;
     ofPixels pix;
     ofPixels corePix;
-    ofPixels contourPix;
     cv::Mat distMap;
     ofImage resImg;
     ofxCvGrayscaleImage grayImg;
-    ofxCvGrayscaleImage contourImg;
     ofxCv::ContourFinder contourFinder;
     ofColor coreCol;
     ofColor newCol;
@@ -70,6 +68,5 @@ class ofApp : public ofBaseApp{
     float elTime;
     int LUT[255][255][255];
     const int cmykw[5][3] = {{0,255,255},{255,0,255},{255,255,0},{0,0,0},{255,255,255}};
-//    vector<ofColor> cmykw;
-    float weight[4];
+    float weight[4] = {7/16, 3/16, 5/16, 1/16};
 };
