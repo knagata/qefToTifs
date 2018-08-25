@@ -57,6 +57,7 @@ class ofApp : public ofBaseApp{
     ofPixels pix;
     ofPixels corePix;
     cv::Mat distMap;
+    ofPixels newPix;
     ofImage resImg;
     ofxCvGrayscaleImage grayImg;
     ofxCv::ContourFinder contourFinder;
@@ -64,6 +65,8 @@ class ofApp : public ofBaseApp{
     ofColor newCol;
     int hullDepth;
     int fillRad;
+    vector<vector<ofVec2f>> cirPts;
+    
     string name;
     float elTime;
     int LUT[255][255][255];

@@ -9,7 +9,7 @@ void ofApp::setup(){
     ///////////////////////////////////
     //  load csv to make voxel list  //
     ///////////////////////////////////
-    if(csv.load("dog.qef", " ")) {
+    if(csv.load("fiji.qef", " ")) {
         colorSize = csv[4].getInt(0);
         cout<<"load header"<<endl;
         for (uint64 i=5; i<colorSize+5; i++) {
@@ -42,7 +42,7 @@ void ofApp::setup(){
         }
         voxelLayer.push_back(layer);
         layer.clear();
-        dist = domain{xmax, ymax, zmax};
+        dist = domain{xmax+1, ymax+1, zmax+1};
         cout<<"generate layer"<<endl;
         
         cout << "boundings: " << dist.x<<","<<dist.y<<","<<dist.z << endl;
@@ -79,7 +79,19 @@ void ofApp::setup(){
     coreCol = ofColor(0,255,255);
     newCol = ofColor(255,255,255,255);
     hullDepth = 10;
-    fillRad = 2;
+    for(int r=2;r<=hullDepth+2; r++){
+        vector<ofVec2f> pts;
+        for (float t=0; t<2.0; t+=0.25/r) {
+            ofVec2f pt = ofVec2f(round(r*cos(t*PI)),round(r*sin(t*PI)));
+            if (t==0) {
+                pts.push_back(pt);
+            }else if(pts[pts.size()-1].x!=pt.x&&pts[pts.size()-1].y!=pt.y && pts[0].x!=pt.x&&pts[0].y!=pt.y){
+                pts.push_back(pt);
+            }
+        }
+        cirPts.push_back(pts);
+    }
+//    fillRad = 2;
     exporting = false;
 //    ofSetFrameRate(5);
 }
@@ -94,6 +106,8 @@ void ofApp::update(){
         pix.allocate(w, h, OF_PIXELS_RGBA);
         corePix.clear();
         corePix.allocate(w, h, OF_PIXELS_MONO);
+        newPix.clear();
+        newPix.allocate(w, h, OF_PIXELS_RGBA);
         
         for (int i=0; i<w; i++) {
             for (int j=0; j<h; j++) {
@@ -141,38 +155,107 @@ void ofApp::update(){
                 }
             }
         }
+
         double minVal; double maxVal;
         minMaxLoc( distMap, &minVal, &maxVal, 0, 0, Mat() );
         minVal = abs(minVal); maxVal = abs(maxVal);
-        int d=0;
-        while (d<=hullDepth&&d<=maxVal) {
-            for (int i=0; i<w; i++) {
-                for (int j=0; j<h; j++) {
-                    if (distMap.at<float>(i,j)>=d && distMap.at<float>(i,j)<d+1) {
-                        int num=0;
-                        int r=0;
-                        int g=0;
-                        int b=0;
-                        for (int disp=fillRad; disp>0; disp--) {
-                            for (int rad=0; rad<disp; rad++) {
-                                ofColor rc = pix.getColor(i-disp+rad, j-rad);
-                                ofColor lc = pix.getColor(i+disp-rad, j+rad);
-                                ofColor uc = pix.getColor(i-rad, j-disp+rad);
-                                ofColor dc = pix.getColor(i+rad, j+disp-rad);
-                                if (rc.a>0){ num++; r+=rc.r; g+=rc.g; b+=rc.b;}
-                                if (lc.a>0){ num++; r+=lc.r; g+=lc.g; b+=lc.b;}
-                                if (uc.a>0){ num++; r+=uc.r; g+=uc.g; b+=uc.b;}
-                                if (dc.a>0){ num++; r+=dc.r; g+=dc.g; b+=dc.b;}
+        
+        for (int i=0; i<w; i++) {
+            for (int j=0; j<h; j++) {
+                newPix.setColor(i,j, ofColor(0,0,0,0));
+            }
+        }
+        for (int i=0; i<w; i++) {
+            for (int j=0; j<h; j++) {
+                int contDist = round(distMap.at<float>(i,j));
+                if (contDist<=hullDepth&&contDist>=0) {
+                    int num=0;
+                    int r=0;
+                    int g=0;
+                    int b=0;
+                    float minDist=(contDist+1)*2;
+                    for (int x=-contDist-1; x<=contDist+1; x++) {
+                        for (int y=-contDist-1; y<=contDist+1; y++) {
+                            if (i+x>0&&i+x<w && j+y>0&&j+y<h) {
+                                ofColor c = pix.getColor(i+x, j+y);
+                                if (c.a>0) {
+                                    float d = sqrt(x*x+y*y);
+                                    if (d<minDist) {
+                                        minDist=d;
+                                        r=c.r;
+                                        g=c.g;
+                                        b=c.b;
+                                    }
+//                                    num++;
+//                                    r+=c.r;
+//                                    g+=c.g;
+//                                    b+=c.b;
+                                }
                             }
                         }
-                        if (num!=0) {
-                            pix.setColor(i,j, ofColor(r/num, g/num, b/num, 255));
-                        }
                     }
+                    if (minDist<(contDist+1)*2) {
+                        newPix.setColor(i, j, ofColor(r, g, b, 255));
+                    }
+//                    if (num>0) {
+//                        newPix.setColor(i, j, ofColor(r/num, g/num, b/num, 255));
+//                    }
+//                    for (int offset=0; offset<=hullDepth-contDist; offset++) {
+//                        for (int p=0; p<cirPts[contDist+offset].size(); p++) {
+//                            if(cirPts[contDist][p].x+i>0&&cirPts[contDist][p].y+j>0 && cirPts[contDist][p].x+i<w&&cirPts[contDist][p].y+j<h){
+//                                if (pix.getColor(cirPts[contDist][p].x+i, cirPts[contDist][p].y+j).a>0) {
+//                                    num++;
+//                                    r+=pix.getColor(cirPts[contDist][p].x+i, cirPts[contDist][p].y+j).r;
+//                                    g+=pix.getColor(cirPts[contDist][p].x+i, cirPts[contDist][p].y+j).g;
+//                                    b+=pix.getColor(cirPts[contDist][p].x+i, cirPts[contDist][p].y+j).b;
+//                                }
+//                            }
+//                        }
+//                        if (num>0) {
+//                            cout<<num<<endl;
+//                            newPix.setColor(i,j, ofColor(r/num, g/num, b/num, 255));
+//                            break;
+//                        }
+//                    }
                 }
             }
-            d++;
         }
+        for (int i=0; i<w; i++) {
+            for (int j=0; j<h; j++) {
+                if (newPix.getColor(i, j).a>0) {
+                    pix.setColor(i,j, newPix.getColor(i, j));
+                }
+            }
+        }
+//        int d=0;
+//        while (d<=hullDepth) {
+//            for (int i=0; i<w; i++) {
+//                for (int j=0; j<h; j++) {
+//                    if (distMap.at<float>(i,j)>=d && distMap.at<float>(i,j)<d+1) {
+//                        int num=0;
+//                        int r=0;
+//                        int g=0;
+//                        int b=0;
+//                        for (int disp=fillRad; disp>0; disp--) {
+//                            for (int rad=0; rad<disp; rad++) {
+//                                ofColor rc = pix.getColor(i-disp+rad, j-rad);
+//                                ofColor lc = pix.getColor(i+disp-rad, j+rad);
+//                                ofColor uc = pix.getColor(i-rad, j-disp+rad);
+//                                ofColor dc = pix.getColor(i+rad, j+disp-rad);
+//                                if (rc.a>0){ num++; r+=rc.r; g+=rc.g; b+=rc.b;}
+//                                if (lc.a>0){ num++; r+=lc.r; g+=lc.g; b+=lc.b;}
+//                                if (uc.a>0){ num++; r+=uc.r; g+=uc.g; b+=uc.b;}
+//                                if (dc.a>0){ num++; r+=dc.r; g+=dc.g; b+=dc.b;}
+//                            }
+//                        }
+//                        if (num!=0) {
+//                            pix.setColor(i,j, ofColor(r/num, g/num, b/num, 255));
+//                        }
+//                    }
+//                }
+//            }
+//            d++;
+//        }
         
         /////////////
         //dithering//
